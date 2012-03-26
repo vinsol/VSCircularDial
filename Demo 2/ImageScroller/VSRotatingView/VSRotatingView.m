@@ -13,6 +13,7 @@
 @implementation VSRotatingView
 
 @synthesize wellnessDial, wellnessDialOverlay;
+@synthesize rotatingViewDelegate;
 
 + (VSRotatingView *)new
 {
@@ -28,6 +29,24 @@
     }
     return self;
 }
+
+/*
+- (id)initWithCoder:(NSCoder *)aDecoder {
+    self = [super initWithCoder:aDecoder];
+    if (self) {
+        // Initialization code
+        NSLog(@"coder called");
+    }
+    return self;
+}
+
+ // Only override drawRect: if you perform custom drawing.
+ // An empty implementation adversely affects performance during animation.
+ - (void)drawRect:(CGRect)rect
+ {
+ // Drawing code
+ }
+*/
 
 - (void) awakeFromNib
 {
@@ -98,6 +117,32 @@
                              self.wellnessDial.transform = CGAffineTransformMakeRotation(rotation * segmentAngle);
                          }
                          completion:NULL];
+        
+        [self callDelegateMethods];
+    }
+}
+
+- (void)callDelegateMethods {
+    CGFloat segmentAngle = (2 * M_PI / NUMBER_OF_SEGMENTS); // 7 Pieces in the Dial PNG.
+    CGFloat currentDialAngle = atan2(self.wellnessDial.transform.b, self.wellnessDial.transform.a);
+    
+    // Normalize the angle from 0 to 2Pi.
+    currentDialAngle += M_PI;
+    NSInteger currentSegment = currentDialAngle / segmentAngle;
+    NSInteger newRotation = currentSegment - 3; // Correct for the normalization.
+
+    if (SEGMENT_ROTATION_DIRECTION == 1) {
+        if (newRotation <= 0)
+            newRotation += NUMBER_OF_SEGMENTS;
+        newRotation = NUMBER_OF_SEGMENTS - newRotation;
+    }
+    else {
+        if (newRotation < 0)
+            newRotation += NUMBER_OF_SEGMENTS;  // (segment index ranges from 0 to NUMBER_OF_SEGMENTS)
+    }
+    
+    if ([rotatingViewDelegate respondsToSelector:@selector(viewCirculatedToSegmentIndex:)]) {
+        [rotatingViewDelegate viewCirculatedToSegmentIndex:newRotation];
     }
 }
 
@@ -106,6 +151,7 @@
     [wellnessDialOverlay release];
     [wellnessDial release];
     [audioPlayer release];
+    [rotatingViewDelegate release];
     [super dealloc];
 }
 
